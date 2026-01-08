@@ -1,0 +1,18 @@
+# Sanal Ortam (Virtual Environment)
+venv/
+.venv/
+env/
+
+# Gizli Anahtarlar (ÇOK ÖNEMLİ)
+.env
+
+# Python derlenmiş dosyaları (Gereksiz kalabalık)
+__pycache__/
+*.py[cod]
+
+# İşletim sistemi dosyaları
+.DS_Store
+
+# IDE ayarları
+.vscode/
+.idea/
