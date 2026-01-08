@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import os
+import random  # Rastgele seçim için kütüphane eklendi
 from dotenv import load_dotenv
 
 # --- CONFIGURATION ---
@@ -9,7 +10,48 @@ API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
 st.set_page_config(page_title="Skybeat | Aesthesius", page_icon="🎵", layout="centered")
 
-# --- DATA ---
+# --- DATA: PLAYLIST POOLS ---
+# Her hava durumu için çoklu şarkı seçenekleri
+# Format: (Mood Text, Song Name, Artist, Genre, Spotify Link)
+PLAYLISTS = {
+    "clear": [
+        ("Sunny & Bright", "Happy", "Pharrell Williams", "Pop", "https://open.spotify.com/track/60nZcImufyMA1KT4e90KQv"),
+        ("Golden Vibes", "Walking On Sunshine", "Katrina & The Waves", "80s Pop", "https://open.spotify.com/track/05wIrZSwuaVWhcv5FfqeH0"),
+        ("Energetic Sun", "Can't Stop the Feeling!", "Justin Timberlake", "Pop", "https://open.spotify.com/track/1WkMMavIMc4JZ8cfMmxHkI"),
+        ("Good Day", "Lovely Day", "Bill Withers", "Soul", "https://open.spotify.com/track/0bRXwKfigvpKZUurwqAlEh"),
+        ("Summer Breeze", "Watermelon Sugar", "Harry Styles", "Pop", "https://open.spotify.com/track/6UelLqGlWMcVWRZuZz6wQe"),
+    ],
+    "clouds": [
+        ("Cloudy Vibes", "Sweater Weather", "The Neighbourhood", "Indie", "https://open.spotify.com/track/2QjOHCTQ1Jl3zawyYOpxh6"),
+        ("Grey Skies", "Team", "Lorde", "Alt-Pop", "https://open.spotify.com/track/3G6hD9BdiYigko74HK86kR"),
+        ("Chill Clouds", "Cardigan", "Taylor Swift", "Folk", "https://open.spotify.com/track/4R2kfaDFhslZwpwIaKuVN5"),
+        ("Soft Mood", "Video Games", "Lana Del Rey", "Baroque Pop", "https://open.spotify.com/track/241P8hryM5QU1hH7MPq9F7"),
+        ("Overcast", "Midnight City", "M83", "Electronic", "https://open.spotify.com/track/1eyzqe2QqGZUmfcPZtrIyt"),
+    ],
+    "rain": [
+        ("Melancholic Rain", "Set Fire to the Rain", "Adele", "Soul/Pop", "https://open.spotify.com/track/73R6fgvOpsnCMviF8IwyV"),
+        ("Rainy Jazz", "Don't Know Why", "Norah Jones", "Jazz", "https://open.spotify.com/track/6ybViy2qrO9sIi41EgRJgx"),
+        ("Emotional", "Fix You", "Coldplay", "Rock", "https://open.spotify.com/track/7LVHVU3tWfcxj5aiPFEW4Q"),
+        ("Stormy Heart", "Grenade", "Bruno Mars", "Pop", "https://open.spotify.com/track/2QjOHCTQ1Jl3zawyYOpxh6"),
+        ("Raindrops", "Stan", "Eminem ft. Dido", "Hip-Hop", "https://open.spotify.com/track/3UmaczJjbHGh7Lb07s8rhI"),
+    ],
+    "snow": [
+        ("Snowy Silence", "Let It Snow!", "Frank Sinatra", "Classic Jazz", "https://open.spotify.com/track/4kKdvXD0ez7jp1296JkWts"),
+        ("Winter Magic", "White Christmas", "Bing Crosby", "Classic", "https://open.spotify.com/track/4so0WskIBSktRLv9gJoEbE"),
+        ("Cold Comfort", "Winter Winds", "Mumford & Sons", "Folk", "https://open.spotify.com/track/5cG2n3lZ35Z1H7Q5w10000"),
+    ],
+    "thunderstorm": [
+        ("Stormy Power", "Thunderstruck", "AC/DC", "Hard Rock", "https://open.spotify.com/track/57bgtoPSgt236HzfBOd8kj"),
+        ("Dark Energy", "Believer", "Imagine Dragons", "Rock", "https://open.spotify.com/track/0pqnGHJpmpxLKifKRmU6WP"),
+        ("Electric", "Immigrant Song", "Led Zeppelin", "Classic Rock", "https://open.spotify.com/track/78lgmZwycJ3nzsdgmPPGNx"),
+    ],
+    # Varsayılan / Bilinmeyen durumlar için
+    "default": [
+        ("Chill Mode", "Three Little Birds", "Bob Marley", "Reggae", "https://open.spotify.com/track/6A9mNKZG2FwvTOMFt5m9q"),
+        ("Relax", "Weightless", "Marconi Union", "Ambient", "https://open.spotify.com/track/6kkwzB6hXLIONkEk9JciA6"),
+    ]
+}
+
 MAJOR_CITIES = [
     "Select a City...", "Istanbul", "Izmir", "Ankara", "London", "New York", 
     "Tokyo", "Paris", "Berlin", "Moscow", "Dubai", "Singapore", 
@@ -30,7 +72,9 @@ st.markdown(
 
 # --- BACKEND FUNCTIONS ---
 def get_weather(city_name):
+    # 1. API Anahtarı Kontrolü
     if not API_KEY:
+        print("❌ HATA: API Anahtarı (.env) okunamadı!")
         st.error("SYSTEM ERROR: API Key missing.")
         return None
 
@@ -38,30 +82,40 @@ def get_weather(city_name):
     params = {"q": city_name, "appid": API_KEY, "units": "metric", "lang": "en"}
     
     try:
+        print(f"🔍 İSTEK GÖNDERİLİYOR: {city_name}...") # Terminale yazar
         response = requests.get(base_url, params=params)
+        
+        # 2. Durum Kodunu Yazdır (En Önemli Kısım)
+        print(f"📡 API CEVABI (Status Code): {response.status_code}")
+        
         if response.status_code == 200:
+            print("✅ Veri başarıyla alındı.")
             return response.json()
-        elif response.status_code == 404:
+        elif response.status_code == 401:
+            print("⛔ HATA: 401 Unauthorized (API Anahtarı Yanlış veya Aktif Değil)")
+            st.error("HATA: API Anahtarı geçersiz (401).")
             return None
+        elif response.status_code == 404:
+            print("❌ HATA: 404 Not Found (Şehir bulunamadı)")
+            return None
+        else:
+            print(f"⚠️ HATA: Beklenmedik durum ({response.status_code})")
+            return None
+    except Exception as e:
+        print(f"🔥 KRİTİK HATA: {e}")
         return None
-    except:
-        return None
-
 def recommend_song(weather_main):
     weather_main = weather_main.lower()
     
-    # Structure: condition -> (Mood, Song Name, Artist, Genre, Spotify/YouTube Link)
-    recommendations = {
-        "clear": ("Sunny & Bright", "Happy", "Pharrell Williams", "Pop", "https://open.spotify.com/track/60nZcImufyMA1KT4eoro2W"),
-        "clouds": ("Cloudy Vibes", "Sweater Weather", "The Neighbourhood", "Indie", "https://open.spotify.com/track/2QjOHCTQ1Jl3zawyYOpxh6"),
-        "rain": ("Melancholic Rain", "Set Fire to the Rain", "Adele", "Soul/Pop", "https://open.spotify.com/track/5PkWxpOh4tjDi11AMN9VE1"),
-        "drizzle": ("Light Drizzle", "Open", "Rhye", "Chill", "https://open.spotify.com/track/3JsA2swdNR9oQss0xVIyAX"),
-        "thunderstorm": ("Stormy Power", "Thunderstruck", "AC/DC", "Hard Rock", "https://open.spotify.com/track/57bgtoPSgt236HzfBOd8kj"),
-        "snow": ("Snowy Silence", "Let It Snow!", "Frank Sinatra", "Classic Jazz", "https://open.spotify.com/track/4kKdvXD0ez7jp1296JkWts"),
-        "mist": ("Misty Mystery", "Pyramid Song", "Radiohead", "Art Rock", "https://open.spotify.com/track/55qBw1900pZKfXJ6Q9A2Lc"),
-    }
+    # İlgili hava durumu listesini al, yoksa 'default' listeyi al
+    # Drizzle ve Mist gibi az rastlanan durumları ana kategorilere bağlayalım:
+    if weather_main in ["drizzle", "mist", "fog", "haze"]:
+        weather_main = "clouds"
     
-    return recommendations.get(weather_main, ("Chill Mode", "Three Little Birds", "Bob Marley", "Reggae", "https://open.spotify.com/track/6A9mNKZG8AEKNHJ66ZFj33"))
+    song_list = PLAYLISTS.get(weather_main, PLAYLISTS["default"])
+    
+    # Listeden RASTGELE bir şarkı seç
+    return random.choice(song_list)
 
 # --- FRONTEND UI ---
 def main():
@@ -82,6 +136,7 @@ def main():
                 desc = data['weather'][0]['description'].title()
                 temp = data['main']['temp']
                 
+                # Fonksiyondan rastgele şarkıyı al
                 mood, song, artist, genre, link = recommend_song(main_weather)
                 
                 # UI Result Card
@@ -96,10 +151,10 @@ def main():
                 # Music Card
                 with st.container():
                     st.markdown(f"""
-                    <div style="background-color: #1E1E1E; padding: 20px; border-radius: 10px; border: 1px solid #333;">
+                    <div style="background-color: #1E1E1E; padding: 20px; border-radius: 10px; border: 1px solid #333; text-align: center;">
                         <h3 style="color: #FF4B4B; margin:0;">Now Playing</h3>
-                        <p style="font-size: 20px; margin: 5px 0;"><strong>{song}</strong></p>
-                        <p style="color: gray;">by {artist} ({genre})</p>
+                        <p style="font-size: 24px; margin: 10px 0; font-weight: bold;">{song}</p>
+                        <p style="color: gray; font-size: 16px;">by {artist} • {genre}</p>
                     </div>
                     """, unsafe_allow_html=True)
                     
