@@ -17,7 +17,7 @@
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/fehmianilk2/aesthesius_skybeat.git](https://github.com/fehmianilk2/aesthesius_skybeat.git)
+    git clone [https://github.com/fehmianilk2/Project-Dionysus](https://github.com/fehmianilk2/Project-Dionysus)
     cd aesthesius_skybeat
     ```
 
