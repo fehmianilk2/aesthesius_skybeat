@@ -1,10 +1,10 @@
-# ☁️ Aesthesius Skybeat
+# ☁️ Aesthesius Project Dionysus
 
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 ![API](https://img.shields.io/badge/OpenWeatherMap-API-orange)
 
-**Skybeat** is an intelligent, weather-based music recommendation engine powered by the **Aesthesius** ecosystem. It analyzes real-time weather conditions of any global city and curates a musical mood to match the atmosphere.
+**Dionysus** is an intelligent, weather-based music recommendation engine powered by the **Aesthesius** ecosystem. It analyzes real-time weather conditions of any global city and curates a musical mood to match the atmosphere.
 
 ## 🚀 Features
 
